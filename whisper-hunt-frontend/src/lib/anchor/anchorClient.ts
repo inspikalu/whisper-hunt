@@ -7,18 +7,21 @@ import perIdl from './idl/whisper_hunt_per.json';
 
 declare const Buffer: any;
 
+import { WhisperHuntL1 } from './idl/whisper_hunt_l1';
+import { WhisperHuntPer } from './idl/whisper_hunt_per';
+
 // Program IDs from Anchor.toml
 export const L1_PROGRAM_ID = new PublicKey('RSKiBZg1sMV2qUF3tj4gsYYWVm74sKcTAYvLK7F8Msw');
 export const PER_PROGRAM_ID = new PublicKey('Ek8THkUVr8oVsQkXcsWtSCaA9Eg9WAyjG44t4CumLhJg');
 
 export function useWhisperHuntL1() {
   const provider = useAnchorProvider();
-  return useMemo(() => new Program(l1Idl as unknown as Idl, provider), [provider]);
+  return useMemo(() => new Program(l1Idl as any, provider), [provider]);
 }
 
 export function useWhisperHuntPER() {
   const provider = useAnchorProvider();
-  return useMemo(() => new Program(perIdl as unknown as Idl, provider), [provider]);
+  return useMemo(() => new Program(perIdl as any, provider), [provider]);
 }
 
 export function getBountyBoxPDA(funder: PublicKey, nonce: number[]) {
@@ -42,9 +45,14 @@ export function getBoxPermissionsPDA(boxId: PublicKey) {
   );
 }
 
+import { BN } from "@coral-xyz/anchor";
+
 export function getSubmissionPDA(boxId: PublicKey) {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('submission'), boxId.toBuffer()],
+    [
+      Buffer.from('submission'), 
+      boxId.toBuffer(),
+    ],
     PER_PROGRAM_ID
   );
 }

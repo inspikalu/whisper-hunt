@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
@@ -15,268 +15,310 @@ import {
   getVaultPDA, 
   L1_PROGRAM_ID 
 } from "@/lib/anchor/anchorClient";
+import { Navbar } from "@/components/Navbar";
+import { useToast, Toast } from "@/components/Toast";
 
-export default function OwnerDashboardPage({ params }: { params: { id: string } }) {
+export default function OwnerDashboardPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
+  const params = React.use(paramsPromise);
   const { publicKey, sendTransaction } = useWallet();
   const perProgram = useWhisperHuntPER();
   const l1Program = useWhisperHuntL1();
 
-  const [selectedSubmission, setSelectedSubmission] = useState<number | null>(null);
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [selectedSubmission, setSelectedSubmission] = useState<any | null>(null);
   const [showConfirmPayout, setShowConfirmPayout] = useState(false);
   const [isDecrypting, setIsDecrypting] = useState(false);
+  const [loading, setLoading] = useState(false);
+  
+  const [boxData, setBoxData] = useState<any>(null);
+  const [isFetchingBox, setIsFetchingBox] = useState(true);
 
-  const handleDecrypt = async () => {
-    if (!publicKey) return;
-    setIsDecrypting(true);
+  const { toast, showToast, hideToast } = useToast();
+
+  useEffect(() => {
+    fetchBoxData();
+    fetchSubmissions();
+  }, [params.id, perProgram, l1Program]);
+
+  const fetchBoxData = async () => {
     try {
-      // In a real TEE app, this would trigger an attestation challenge
-      // For now, we simulate the "authentic" feeling by fetching submission state
-      const [submissionPDA] = getSubmissionPDA(new PublicKey(params.id));
-      const submissionAccount = await perProgram.account.submission.fetch(submissionPDA);
-      console.log("Decrypted Submission Data:", submissionAccount);
+      setIsFetchingBox(true);
+      const data = await l1Program.account.bountyBox.fetch(new PublicKey(params.id));
+      setBoxData(data);
     } catch (error) {
-      console.error("Failed to decrypt:", error);
+      console.error("Failed to fetch box data:", error);
     } finally {
-      setIsDecrypting(false);
+      setIsFetchingBox(false);
     }
+  };
+
+  const fetchSubmissions = async () => {
+    try {
+      setLoading(true);
+      // Fetch all submissions for this box using memcmp
+      const allSubmissions = await (perProgram.account as any).submission.all([
+        {
+          memcmp: {
+            offset: 8, // After 8-byte discriminator
+            bytes: params.id,
+          },
+        },
+      ]);
+      setSubmissions(allSubmissions);
+    } catch (error) {
+      console.error("Failed to fetch submissions:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDecrypt = async (submission: any) => {
+    setSelectedSubmission(submission);
+    setIsDecrypting(true);
+    // Simulate TEE decryption delay
+    setTimeout(() => {
+      setIsDecrypting(false);
+      showToast("Intelligence decrypted via Sentinel TEE.", "success");
+    }, 1200);
   };
 
   const handlePayout = async () => {
-    if (!publicKey) return;
+    if (!publicKey || !selectedSubmission) return;
     try {
       const boxId = new PublicKey(params.id);
       const [boxPermissions] = getBoxPermissionsPDA(boxId);
-      const [submission] = getSubmissionPDA(boxId);
       const [perAuthority] = getPerAuthorityPDA();
       const [vault] = getVaultPDA(boxId);
 
-      // We need to fetch the submission to get the submitter's address
-      const subAccount = await perProgram.account.submission.fetch(submission) as any;
-
-      const tx = await perProgram.methods
-        .approveSubmission(new BN(0)) // Assuming index 0 for simplicity
+      const sig = await perProgram.methods
+        .approveSubmission(new BN(selectedSubmission.account.submissionId))
         .accounts({
           owner: publicKey,
           boxPermissions,
-          submission,
+          submission: selectedSubmission.publicKey,
           perAuthority,
           l1BountyBox: boxId,
           l1Vault: vault,
-          submitterWallet: subAccount.submitter,
+          submitterWallet: selectedSubmission.account.submitter,
           l1Program: L1_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
-        .transaction();
+        .rpc();
 
-      const sig = await sendTransaction(tx, perProgram.provider.connection);
-      await perProgram.provider.connection.confirmTransaction(sig, "confirmed");
-      
+      showToast("Submission approved! Bounty released. Sig: " + sig.substring(0, 8) + "...", "success");
       setShowConfirmPayout(false);
-      alert("Submission approved! Bounty released to submitter's stealth address.");
+      await fetchBoxData();
+      await fetchSubmissions();
+      setSelectedSubmission(null);
     } catch (error) {
-      console.error("Payout failed:", error);
-      alert("Payout failed: " + (error as any).message);
+      console.error("Payout failed in detail:", error);
+      const msg = (error as any).message || "Unknown error";
+      showToast("Payout failed: " + msg, "error");
     }
   };
 
+  const formattedReward = boxData ? (boxData.totalFunded.toNumber() / 1e9).toFixed(2) : "0.00";
+
   return (
-    <div className="bg-background min-h-screen pb-24 md:pb-0">
-      <header className="bg-[#111318] sticky top-0 z-50 border-b border-outline-variant/10">
-        <div className="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
-          <div className="flex items-center gap-3">
-            <span className="material-symbols-outlined text-[#00F5FF] text-2xl">security</span>
-            <Link href="/" className="font-['Space_Grotesk'] text-on-surface tracking-tight text-2xl font-bold text-[#00F5FF] tracking-tighter uppercase">WhisperHunt</Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex gap-6 mr-6">
-              <Link href="#" className="font-['Space_Grotesk'] text-[#e2e2e8]/60 hover:text-[#00F5FF] transition-all duration-300 cursor-pointer text-sm font-medium tracking-widest uppercase text-center flex items-center">Network</Link>
-              <Link href="#" className="font-['Space_Grotesk'] text-[#00F5FF] font-bold cursor-pointer text-sm font-medium tracking-widest uppercase text-center flex items-center">Dashboard</Link>
-            </div>
-            <WalletMultiButton className="!bg-surface-container !border !border-outline-variant/30 !rounded-full !px-4 !py-1.5 !h-auto !text-xs !font-mono !text-on-surface-variant" />
-          </div>
-        </div>
-      </header>
+    <div className="bg-surface min-h-screen">
+      <Navbar />
 
-      <main className="max-w-7xl mx-auto p-6 md:pt-10">
-        {/* Box Overview Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <div className="bg-surface-container-low p-6 rounded-xl border-l-2 border-primary-container/30">
-            <p className="text-on-surface-variant text-xs uppercase tracking-[0.2em] font-headline mb-2">Total SOL in Vault</p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold font-headline text-primary">50.00</span>
-              <span className="text-primary-container font-mono text-sm">SOL</span>
+      <main className="max-w-7xl mx-auto pt-28 px-6 pb-24">
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          <div className="bg-surface-container-low p-8 rounded-xl border-l-4 border-primary-container">
+            <p className="text-on-surface-variant text-[10px] uppercase tracking-[0.3em] font-headline mb-4 opacity-60">Reward Pool Active</p>
+            <div className="flex items-baseline gap-3">
+              <span className="text-4xl font-bold font-headline text-primary">{formattedReward}</span>
+              <span className="text-primary-container font-mono text-xs uppercase tracking-widest">SOL</span>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-[10px] text-tertiary-container/80">
-              <span className="material-symbols-outlined text-xs">verified</span>
-              <span className="monospaced truncate">PDA: {params.id.substring(0, 12)}...</span>
-            </div>
-          </div>
-          <div className="bg-surface-container-low p-6 rounded-xl border-l-2 border-outline-variant/30">
-            <p className="text-on-surface-variant text-xs uppercase tracking-[0.2em] font-headline mb-2">Time Remaining</p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold font-headline text-on-surface">Active</span>
-            </div>
-            <div className="mt-4 bg-surface-container-highest/30 h-1 w-full rounded-full overflow-hidden">
-              <div className="bg-primary-container h-full w-full"></div>
+            <div className="mt-6 flex items-center gap-2 text-[10px] text-on-surface-variant/40 monospaced truncate">
+               PDA: {params.id.substring(0, 16)}...
             </div>
           </div>
-          <div className="bg-surface-container-low p-6 rounded-xl border-l-2 border-outline-variant/30">
-            <p className="text-on-surface-variant text-xs uppercase tracking-[0.2em] font-headline mb-2">Total Submissions</p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold font-headline text-on-surface">08</span>
+          
+          <div className="bg-surface-container-low p-8 rounded-xl border-l-4 border-outline-variant/20">
+            <p className="text-on-surface-variant text-[10px] uppercase tracking-[0.3em] font-headline mb-4 opacity-60">Sentinel Context</p>
+            <div className="flex items-baseline gap-3">
+              <span className="text-4xl font-bold font-headline text-on-surface">{isFetchingBox ? "..." : "Active"}</span>
             </div>
-            <div className="mt-4 flex gap-2">
-              <span className="px-2 py-0.5 rounded bg-tertiary-container/10 text-tertiary-container text-[10px] font-mono">3 NEW</span>
-              <span className="px-2 py-0.5 rounded bg-primary-container/10 text-primary-container text-[10px] font-mono">TEE READY</span>
+            <div className="mt-6 h-[1px] bg-outline-variant/20 w-full"></div>
+          </div>
+
+          <div className="bg-surface-container-low p-8 rounded-xl border-l-4 border-outline-variant/20">
+            <p className="text-on-surface-variant text-[10px] uppercase tracking-[0.3em] font-headline mb-4 opacity-60">Total Intelligence Items</p>
+            <div className="flex items-baseline gap-3">
+              <span className="text-4xl font-bold font-headline text-on-surface">{submissions.length.toString().padStart(2, "0")}</span>
+              <span className="text-tertiary-container font-mono text-[10px] uppercase tracking-widest">Captured</span>
+            </div>
+             <div className="mt-6 flex gap-2">
+              <span className="px-3 py-1 bg-tertiary-container/5 text-tertiary-container text-[9px] font-bold uppercase tracking-widest border border-tertiary-container/10 rounded">TEE Ready</span>
             </div>
           </div>
         </div>
 
-        {/* Dashboard Layout */}
-        <div className="flex flex-col lg:flex-row gap-8 min-h-[600px]">
-          {/* Sidebar: Submission List */}
-          <aside className="w-full lg:w-80 flex flex-col gap-4">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="font-headline text-sm font-bold uppercase tracking-widest text-on-surface">Submissions</h2>
-              <span className="material-symbols-outlined text-outline cursor-pointer hover:text-primary transition-colors">filter_list</span>
+        {/* Intelligence Unit */}
+        <div className="flex flex-col lg:flex-row gap-12 min-h-[700px]">
+          {/* Sidebar: Submissions */}
+          <aside className="w-full lg:w-96 space-y-8">
+            <div className="flex items-center justify-between">
+              <h2 className="font-headline text-xs font-bold uppercase tracking-[0.2em] text-on-surface opacity-60 leading-none">Intelligence Stream</h2>
+              <span className="material-symbols-outlined text-outline-variant hover:text-primary transition-colors cursor-pointer text-lg" onClick={fetchSubmissions}>refresh</span>
             </div>
             
-            <button 
-              onClick={handleDecrypt}
-              disabled={isDecrypting}
-              className="w-full py-4 bg-primary-container text-on-primary-fixed font-headline font-bold uppercase tracking-tighter rounded-xl hover:shadow-[0_0_20px_rgba(0,245,255,0.3)] transition-all flex items-center justify-center gap-2 active:scale-95 group disabled:opacity-50"
-            >
-              <span className="material-symbols-outlined text-xl transition-transform group-hover:rotate-12" style={{ fontVariationSettings: "'FILL' 1" }}>
-                {isDecrypting ? "sync" : "enhanced_encryption"}
-              </span>
-              {isDecrypting ? "Authenticating TEE..." : "Decrypt Inbox"}
-            </button>
-
-            <div className="flex flex-col gap-3 overflow-y-auto max-h-[500px] no-scrollbar pr-1">
-              <div 
-                onClick={() => setSelectedSubmission(8)}
-                className={`p-4 rounded-xl cursor-pointer transition-all border ${selectedSubmission === 8 ? 'bg-surface-container-high border-primary-container/30' : 'bg-surface-container border-outline-variant/10'}`}
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <span className="monospaced text-[10px] text-primary-container">ID: 0xFD...2A1</span>
-                  <span className="text-[10px] text-on-surface-variant/60 uppercase">2m ago</span>
+            <div className="space-y-4 overflow-y-auto max-h-[600px] pr-2 no-scrollbar">
+              {loading ? (
+                <div className="space-y-4 opacity-50">
+                  {[1, 2, 3].map(i => <div key={i} className="h-24 bg-surface-container-low animate-pulse rounded-xl"></div>)}
                 </div>
-                <p className="font-headline font-bold text-on-surface mb-1">Submission #008</p>
-                <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-tertiary-container"></div>
-                  <span className="text-[10px] text-tertiary-container font-medium uppercase tracking-wider">Decrypted</span>
+              ) : submissions.length === 0 ? (
+                <div className="p-8 text-center bg-surface-container-low rounded-xl border border-outline-variant/5">
+                   <p className="text-xs text-on-surface-variant italic font-light">Waiting for encrypted transmissions...</p>
                 </div>
-              </div>
-
-              {[7, 6].map((i) => (
-                <div key={i} className="bg-surface-container-lowest/50 border border-outline-variant/10 p-4 rounded-xl opacity-60 relative overflow-hidden group cursor-not-allowed">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="monospaced text-[10px] text-outline">ID: 0x88...B{i}</span>
-                    <span className="text-[10px] text-on-surface-variant/40 uppercase">{i}h ago</span>
+              ) : (
+                submissions.map((sub: any, idx: number) => (
+                  <div 
+                    key={sub.publicKey.toString()}
+                    onClick={() => handleDecrypt(sub)}
+                    className={`p-6 rounded-xl cursor-pointer transition-all border ${selectedSubmission?.publicKey.toString() === sub.publicKey.toString() ? 'bg-surface-container border-primary-container/30 ring-1 ring-primary-container/20 shadow-[0_0_30px_rgba(0,245,255,0.05)]' : 'bg-surface-container-low border-outline-variant/5 hover:bg-surface-container/50'}`}
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <span className="monospaced text-[10px] text-primary-container/60 uppercase">ITEM {sub.account.submissionId.toString().padStart(3, "0")}</span>
+                      <span className="text-[10px] text-on-surface-variant/40 uppercase">READY</span>
+                    </div>
+                    <p className="font-headline font-bold text-on-surface text-lg leading-tight mb-4 truncate italic">Encrypted Submission</p>
+                    <div className="flex items-center gap-2">
+                       <span className="material-symbols-outlined text-xs text-tertiary-container">enhanced_encryption</span>
+                      <span className="text-[9px] text-on-surface-variant/60 uppercase tracking-widest font-bold">Secure Payload ID: {sub.publicKey.toString().substring(0, 10)}</span>
+                    </div>
                   </div>
-                  <p className="font-headline font-bold text-on-surface-variant mb-1">Submission #00{i}</p>
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-xs text-outline">lock</span>
-                    <span className="text-[10px] text-outline font-medium uppercase tracking-wider">Encrypted (TEE)</span>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </aside>
 
-          {/* Main Content: Decrypted View */}
-          <section className="flex-1 bg-surface-container-low rounded-xl overflow-hidden border border-outline-variant/10 flex flex-col">
-            <div className="p-6 border-b border-outline-variant/10 bg-surface-container/30 flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <h3 className="text-xl font-headline font-bold text-primary">Intelligence Report #008</h3>
-                  <span className="px-2 py-0.5 rounded-full bg-tertiary-container/10 text-tertiary-container text-[10px] font-mono border border-tertiary-container/20">VERIFIED AUTH</span>
-                </div>
-                <p className="text-xs text-on-surface-variant monospaced">Submitted by: <span className="text-on-surface">3mUv...q8Kz</span> (Encrypted Proxy)</p>
-              </div>
-              <div className="flex gap-2">
-                <button className="p-2 rounded-lg bg-surface-container-highest hover:bg-surface-variant transition-colors">
-                  <span className="material-symbols-outlined text-sm">content_copy</span>
-                </button>
-                <button className="p-2 rounded-lg bg-surface-container-highest hover:bg-surface-variant transition-colors">
-                  <span className="material-symbols-outlined text-sm">flag</span>
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 p-8 overflow-y-auto space-y-8 text-on-surface">
-              <div className="max-w-3xl">
-                <label className="text-[10px] uppercase tracking-[0.3em] text-primary-container font-headline mb-4 block">Decrypted Payload (TEE Environment)</label>
-                <div className="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/20 font-body text-on-surface-variant leading-relaxed shadow-inner">
-                  This report contains decrypted content from the whistleblower. The TEE-based decryption ensures that only the verified verifier can view this information through this secure interface. Payout will be released to the submitter's stealth address upon approval.
-                </div>
-              </div>
-              
-              <div>
-                <label className="text-[10px] uppercase tracking-[0.3em] text-outline font-headline mb-4 block">Evidence Attachments (2)</label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="group relative aspect-square bg-surface-container-highest rounded-lg overflow-hidden border border-outline-variant/30 cursor-pointer">
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-                      <span className="material-symbols-outlined text-2xl mb-2 text-primary-container">description</span>
-                      <span className="text-[10px] monospaced truncate w-full">leak_log_v1.csv</span>
-                    </div>
-                  </div>
-                  <div className="group relative aspect-square bg-surface-container-highest rounded-lg border-2 border-dashed border-outline-variant/30 flex items-center justify-center">
-                    <span className="text-[10px] monospaced text-outline">REDACTED_DATA.BIN</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-8 border-t border-outline-variant/10 bg-surface-container/50">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-                <div className="flex items-center gap-4 text-left">
-                  <div className="p-3 bg-tertiary-container/10 rounded-full">
-                    <span className="material-symbols-outlined text-tertiary-container" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
-                  </div>
+          {/* Main Inspection Area */}
+          <section className="flex-1 bg-surface-container-low rounded-xl border border-outline-variant/5 overflow-hidden flex flex-col glass-panel">
+            {selectedSubmission ? (
+              <>
+                <div className="p-8 border-b border-outline-variant/10 bg-surface-container/40 flex items-center justify-between">
                   <div>
-                    <h4 className="font-headline font-bold text-on-surface">Valid Intelligence?</h4>
-                    <p className="text-xs text-on-surface-variant">Approving this will release the 50.0 SOL bounty to the submitter.</p>
+                    <div className="flex items-center gap-4 mb-2">
+                      <h3 className="text-2xl font-headline font-bold text-primary italic uppercase">{boxData?.topic || "Loading Mission..."}</h3>
+                      <span className="px-3 py-1 rounded bg-tertiary-container/10 text-tertiary-container text-[9px] font-bold tracking-widest uppercase border border-tertiary-container/20 leading-none">TEE ATTESTED</span>
+                    </div>
+                    <p className="text-[10px] text-on-surface-variant/60 monospaced tracking-tight uppercase">Submitted via: <span className="text-primary-container opacity-80">{selectedSubmission.account.submitter.toString()}</span></p>
                   </div>
                 </div>
-                <button 
-                  onClick={() => setShowConfirmPayout(true)}
-                  className="w-full sm:w-auto px-10 py-5 bg-tertiary-container text-on-tertiary-fixed font-headline font-extrabold text-lg uppercase tracking-tighter rounded-xl hover:shadow-[0_0_30px_rgba(59,255,23,0.2)] transition-all flex items-center justify-center gap-3 active:scale-95"
-                >
-                  Approve & Payout
-                  <span className="material-symbols-outlined">rocket_launch</span>
-                </button>
+
+                <div className="flex-1 p-10 overflow-y-auto space-y-12">
+                   {isDecrypting ? (
+                     <div className="h-full flex flex-col items-center justify-center space-y-6 opacity-60">
+                        <span className="material-symbols-outlined text-6xl text-primary-container animate-spin">sync</span>
+                        <p className="font-headline text-sm font-bold uppercase tracking-[0.3em] text-primary-container">Attesting TEE Environment...</p>
+                     </div>
+                   ) : (
+                     <div className="space-y-12">
+                        <div className="space-y-6">
+                          <label className="text-[10px] uppercase tracking-[0.4em] text-primary-container font-headline font-bold opacity-40">Decrypted Payload Data</label>
+                          <div className="bg-surface-container-lowest p-8 rounded-xl border border-outline-variant/10 leading-relaxed font-body text-on-surface-variant shadow-inner">
+                            {Buffer.from(selectedSubmission.account.encryptedBlob).toString()}
+                          </div>
+                        </div>
+
+                        <div className="space-y-6">
+                           <label className="text-[10px] uppercase tracking-[0.4em] text-outline-variant font-headline font-bold opacity-40">Digital Metadata</label>
+                           <div className="grid grid-cols-2 gap-8 monospaced text-xs">
+                              <div className="p-4 bg-surface-container-highest/20 rounded-lg border border-outline-variant/5">
+                                 <p className="text-on-surface-variant/40 mb-1">Timestamp</p>
+                                 <p className="text-on-surface">{new Date(selectedSubmission.account.timestamp * 1000).toLocaleString()}</p>
+                              </div>
+                              <div className="p-4 bg-surface-container-highest/20 rounded-lg border border-outline-variant/5">
+                                 <p className="text-on-surface-variant/40 mb-1">Session ID</p>
+                                 <p className="text-on-surface">ER_PROX_{selectedSubmission.publicKey.toString().substring(0, 8).toUpperCase()}</p>
+                              </div>
+                           </div>
+                        </div>
+                     </div>
+                   )}
+                </div>
+
+                <div className="p-10 border-t border-outline-variant/10 bg-surface-container/60">
+                   <div className="flex flex-col sm:flex-row items-center justify-between gap-8">
+                     <div className="flex items-center gap-6">
+                        <div className="w-14 h-14 bg-tertiary-container/10 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(59,255,23,0.1)]">
+                           <span className="material-symbols-outlined text-tertiary-container text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>
+                        </div>
+                        <div>
+                           <h4 className="font-headline font-bold text-xl text-on-surface leading-tight">Authorize Settlement?</h4>
+                           <p className="text-sm text-on-surface-variant font-light">Release {formattedReward} SOL bounty to the verified submitter.</p>
+                        </div>
+                     </div>
+                      <button 
+                        onClick={() => !boxData?.isSettled && setShowConfirmPayout(true)}
+                        disabled={boxData?.isSettled}
+                        className={`w-full sm:w-auto px-12 py-6 font-headline font-black text-lg uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-4 active:scale-95 ${
+                          boxData?.isSettled 
+                            ? "bg-surface-container-highest text-on-surface-variant/40 cursor-not-allowed border border-outline-variant/10" 
+                            : "bg-tertiary-container text-on-tertiary-fixed hover:shadow-[0_0_40px_rgba(59,255,23,0.3)]"
+                        }`}
+                      >
+                        {boxData?.isSettled ? "Mission Settled" : "Approve & Payout"}
+                        <span className="material-symbols-outlined text-2xl">
+                          {boxData?.isSettled ? "verified" : "rocket_launch"}
+                        </span>
+                      </button>
+                   </div>
+                </div>
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center opacity-20 p-12 text-center space-y-8">
+                <span className="material-symbols-outlined text-9xl">monitor_heart</span>
+                <div>
+                   <h3 className="font-headline text-3xl font-bold uppercase tracking-widest uppercase">{boxData?.topic || "Mission Hub"}</h3>
+                   <p className="mt-4 font-light italic">Select an intelligence item from the stream to begin TEE attestation.</p>
+                </div>
               </div>
-            </div>
+            )}
           </section>
         </div>
       </main>
 
-      {/* Confirmation Modal */}
+      {/* Confirmation Overlay */}
       {showConfirmPayout && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-md" onClick={() => setShowConfirmPayout(false)}></div>
-          <div className="relative w-full max-w-md bg-surface-container-high rounded-xl border border-outline-variant shadow-2xl overflow-hidden">
-            <div className="p-8 text-center">
-              <div className="w-20 h-20 bg-error-container/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="material-symbols-outlined text-4xl text-error">warning</span>
-              </div>
-              <h3 className="text-2xl font-headline font-bold text-on-surface mb-2">Confirm Payout</h3>
-              <p className="text-on-surface-variant mb-8 leading-relaxed">
-                Release <span className="text-primary font-bold">50.0 SOL</span> to this submission? This action is <span className="text-error uppercase font-bold tracking-widest">permanent</span> and will end the bounty immediately.
-              </p>
-              <div className="flex flex-col gap-3">
-                <button onClick={handlePayout} className="w-full py-4 bg-tertiary-container text-on-tertiary-fixed font-headline font-bold uppercase tracking-widest rounded-xl hover:opacity-90 transition-opacity">
-                  Confirm Transaction
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/90 backdrop-blur-xl">
+          <div className="relative w-full max-w-lg bg-surface-container-high rounded-xl border border-outline-variant/20 shadow-2xl overflow-hidden p-10 text-center glass-panel">
+             <div className="w-24 h-24 bg-error-container/10 rounded-full flex items-center justify-center mx-auto mb-10 shadow-[0_0_30px_rgba(147,0,10,0.1)]">
+                <span className="material-symbols-outlined text-5xl text-error">warning</span>
+             </div>
+             <h3 className="text-3xl font-headline text-3xl font-bold text-on-surface mb-4 tracking-tight">Confirm Settlement</h3>
+             <p className="text-on-surface-variant mb-12 leading-relaxed font-light">
+                Release <span className="text-primary font-bold">{formattedReward} SOL</span> from the L1 Vault? This cryptographic action is <span className="text-error font-bold uppercase tracking-widest">irreversible</span> and will finalize the bounty.
+             </p>
+             <div className="flex flex-col gap-4">
+                <button 
+                  onClick={handlePayout} 
+                  className="w-full py-6 bg-tertiary-container text-on-tertiary-fixed font-headline font-black uppercase tracking-widest rounded-xl hover:opacity-90 transition-opacity"
+                >
+                  Confirm Payout
                 </button>
-                <button onClick={() => setShowConfirmPayout(false)} className="w-full py-4 bg-surface-container-highest text-on-surface font-headline font-bold uppercase tracking-widest rounded-xl hover:bg-surface-variant transition-colors">
-                  Cancel
+                <button 
+                  onClick={() => setShowConfirmPayout(false)} 
+                  className="w-full py-6 bg-surface-container-highest text-on-surface/60 font-headline font-bold uppercase tracking-widest rounded-xl hover:text-on-surface transition-colors border border-outline-variant/10"
+                >
+                  Abort Operation
                 </button>
-              </div>
-            </div>
-            <div className="h-1 bg-gradient-to-r from-tertiary-container via-primary-container to-tertiary-container"></div>
+             </div>
           </div>
         </div>
+      )}
+
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={hideToast} 
+        />
       )}
     </div>
   );

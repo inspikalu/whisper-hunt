@@ -14,8 +14,8 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "WhisperHunt | Incentivize the Truth Seekers",
-  description: "The world's first decentralized intelligence hub. Secure, anonymous, and 100% on-chain.",
+  title: "WhisperHunt | Secure Bounties",
+  description: "Decentralized intelligence protocol powered by Ephemeral Rollups.",
 };
 
 export default function RootLayout({

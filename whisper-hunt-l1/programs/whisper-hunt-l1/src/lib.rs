@@ -157,6 +157,44 @@ pub mod whisper_hunt_l1 {
         Ok(())
     }
 
+    /// Emergency/Reset: Close box immediately even if deadline has not passed.
+    pub fn force_close_box(ctx: Context<CloseBox>) -> Result<()> {
+        require!(!ctx.accounts.bounty_box.is_settled, WError::AlreadySettled);
+
+        let box_id = ctx.accounts.bounty_box.key();
+        let bump = ctx.accounts.bounty_box.vault_bump;
+        let vault_seeds = &[
+            b"vault",
+            box_id.as_ref(),
+            &[bump]
+        ];
+        let signer = &[&vault_seeds[..]];
+
+        let vault_balance = ctx.accounts.vault.lamports();
+
+        transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.system_program.to_account_info(),
+                Transfer {
+                    from: ctx.accounts.vault.to_account_info(),
+                    to: ctx.accounts.funder.to_account_info(),
+                },
+                signer,
+            ),
+            vault_balance,
+        )?;
+
+        ctx.accounts.bounty_box.is_settled = true;
+
+        emit!(BoxClosed {
+            box_id,
+            funder: ctx.accounts.bounty_box.funder,
+            refund_amount: vault_balance,
+        });
+
+        Ok(())
+    }
+
     /// Releases the bounty to the winner.
     /// CRITICAL: This instruction must only be called via CPI from the PER program.
     /// The constraint enforces the per_program is the correct program — nobody else can trigger a payout.
@@ -181,7 +219,7 @@ pub mod whisper_hunt_l1 {
                 ctx.accounts.system_program.to_account_info(),
                 Transfer {
                     from: ctx.accounts.vault.to_account_info(),
-                    to: ctx.accounts.submitter.to_account_info(),
+                    to: ctx.accounts.submitter_payout_account.to_account_info(),
                 },
                 signer,
             ),
@@ -316,7 +354,7 @@ pub struct ReleaseBounty<'info> {
     /// CHECK: the submitter (whistleblower) receives the payout — validated
     /// by the `submitter` argument passed from the PER program's CPI
     #[account(mut)]
-    pub submitter: UncheckedAccount<'info>,
+    pub submitter_payout_account: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }

@@ -232,6 +232,12 @@ pub mod whisper_hunt_per {
 
         Ok(())
     }
+
+    /// Reset: Close permissions and submission accounts to reclaim rent.
+    /// Only the owner can do this.
+    pub fn close_box_permissions(_ctx: Context<CloseBoxPermissions>) -> Result<()> {
+        Ok(())
+    }
 }
 
 // ─── Account Structs ──────────────────────────────────────────────────────────
@@ -464,4 +470,29 @@ pub enum PError {
     Unauthorized,
     #[msg("This submission has already been approved")]
     AlreadyApproved,
+}
+
+#[derive(Accounts)]
+pub struct CloseBoxPermissions<'info> {
+    #[account(mut)]
+    pub owner: Signer<'info>,
+
+    #[account(
+        mut,
+        close = owner,
+        constraint = box_permissions.owner == owner.key() @ PError::Unauthorized,
+        seeds = [b"box_permissions", box_permissions.box_id.as_ref()],
+        bump = box_permissions.bump
+    )]
+    pub box_permissions: Account<'info, BoxPermissions>,
+
+    #[account(
+        mut,
+        close = owner,
+        seeds = [b"submission", box_permissions.box_id.as_ref()],
+        bump = submission.bump
+    )]
+    pub submission: Account<'info, Submission>,
+
+    pub system_program: Program<'info, System>,
 }
