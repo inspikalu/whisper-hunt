@@ -1,5 +1,7 @@
 # WhisperHunt: The Silent Intelligence Protocol
 
+[Live Demo](https://whisper-hunt.inspikalu.xyz/)
+
 I built WhisperHunt to bridge the gap between high-stakes whistleblowing and on-chain accountability. In a world where transparency often compromises the source, I wanted to create a platform where intelligence could be shared with total privacy while still ensuring that hunters get paid for their risks.
 
 ## The Story
