@@ -1,0 +1,807 @@
+{
+  "address": "Ek8THkUVr8oVsQkXcsWtSCaA9Eg9WAyjG44t4CumLhJg",
+  "metadata": {
+    "name": "whisper_hunt_per",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "approve_submission",
+      "docs": [
+        "Owner-only: approve a submission inside the TEE.",
+        "",
+        "Authentication happens via auth token (challenge/response, issued by the",
+        "TEE's permission program). The TEE validates the token before this IX runs.",
+        "",
+        "On approval:",
+        "1. Marks the submission + box as settled (no further changes possible)",
+        "2. CPIs into whisper-hunt-l1's `release_bounty` so the vault sends",
+        "all SOL to the winning submitter's pubkey."
+      ],
+      "discriminator": [
+        154,
+        76,
+        116,
+        120,
+        143,
+        128,
+        16,
+        205
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "box_permissions",
+          "writable": true
+        },
+        {
+          "name": "submission",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  117,
+                  98,
+                  109,
+                  105,
+                  115,
+                  115,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "box_permissions.box_id",
+                "account": "BoxPermissions"
+              }
+            ]
+          }
+        },
+        {
+          "name": "per_authority",
+          "docs": [
+            "The PER program's own authority PDA — used to sign the CPI to L1.",
+            "L1's `release_bounty` validates this exact PDA as the only allowed caller."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "l1_bounty_box",
+          "writable": true
+        },
+        {
+          "name": "l1_vault",
+          "writable": true
+        },
+        {
+          "name": "submitter_wallet",
+          "writable": true
+        },
+        {
+          "name": "l1_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "_submission_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "close_box_permissions",
+      "docs": [
+        "Reset: Close permissions and submission accounts to reclaim rent.",
+        "Only the owner can do this."
+      ],
+      "discriminator": [
+        109,
+        245,
+        19,
+        62,
+        129,
+        90,
+        226,
+        26
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "box_permissions",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  120,
+                  95,
+                  112,
+                  101,
+                  114,
+                  109,
+                  105,
+                  115,
+                  115,
+                  105,
+                  111,
+                  110,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "box_permissions.box_id",
+                "account": "BoxPermissions"
+              }
+            ]
+          }
+        },
+        {
+          "name": "submission",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  117,
+                  98,
+                  109,
+                  105,
+                  115,
+                  115,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "box_permissions.box_id",
+                "account": "BoxPermissions"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_box_permissions",
+      "docs": [
+        "Creates permission groups for a given box.",
+        "Registers the box_owner (who can read & approve) and",
+        "an optional verifier (who can confirm tip authenticity).",
+        "",
+        "This is called AFTER the box is created on L1.",
+        "`box_id` corresponds to the BountyBox account pubkey on L1."
+      ],
+      "discriminator": [
+        204,
+        48,
+        82,
+        126,
+        110,
+        71,
+        187,
+        21
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "box_permissions",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  120,
+                  95,
+                  112,
+                  101,
+                  114,
+                  109,
+                  105,
+                  115,
+                  115,
+                  105,
+                  111,
+                  110,
+                  115
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "box_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "submission",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  117,
+                  98,
+                  109,
+                  105,
+                  115,
+                  115,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "box_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "box_id",
+          "type": "pubkey"
+        },
+        {
+          "name": "verifier_pubkey",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "delegate_box_permissions",
+      "docs": [
+        "Delegates BOTH the BoxPermissions and Submission accounts to the MagicBlock ER"
+      ],
+      "discriminator": [
+        160,
+        185,
+        144,
+        247,
+        159,
+        22,
+        26,
+        123
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "box_permissions",
+          "writable": true
+        },
+        {
+          "name": "bp_buffer",
+          "writable": true
+        },
+        {
+          "name": "bp_delegation_record",
+          "writable": true
+        },
+        {
+          "name": "bp_delegation_metadata",
+          "writable": true
+        },
+        {
+          "name": "submission",
+          "writable": true
+        },
+        {
+          "name": "sub_buffer",
+          "writable": true
+        },
+        {
+          "name": "sub_delegation_record",
+          "writable": true
+        },
+        {
+          "name": "sub_delegation_metadata",
+          "writable": true
+        },
+        {
+          "name": "delegation_program",
+          "address": "DELeGGvXpWV2fqJUhqcF5ZSYMS4JTLjteaAMARRSaeSh"
+        },
+        {
+          "name": "owner_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "box_id",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "process_undelegation",
+      "discriminator": [
+        196,
+        28,
+        41,
+        206,
+        48,
+        37,
+        51,
+        167
+      ],
+      "accounts": [
+        {
+          "name": "base_account",
+          "writable": true
+        },
+        {
+          "name": "buffer"
+        },
+        {
+          "name": "payer",
+          "writable": true
+        },
+        {
+          "name": "system_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "account_seeds",
+          "type": {
+            "vec": "bytes"
+          }
+        }
+      ]
+    },
+    {
+      "name": "submit_tip",
+      "docs": [
+        "Stores a privately encrypted tip blob.",
+        "",
+        "`encrypted_blob` — the raw tip content encrypted CLIENT-SIDE with the",
+        "box owner's public key. Even inside the TEE, only the owner holding",
+        "the corresponding private key can decrypt it. Double-layer privacy.",
+        "",
+        "The submitter signs with a session keypair, so their persistent wallet",
+        "never appears on any public chain state."
+      ],
+      "discriminator": [
+        223,
+        59,
+        46,
+        101,
+        161,
+        189,
+        154,
+        37
+      ],
+      "accounts": [
+        {
+          "name": "submitter",
+          "signer": true
+        },
+        {
+          "name": "box_permissions",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  120,
+                  95,
+                  112,
+                  101,
+                  114,
+                  109,
+                  105,
+                  115,
+                  115,
+                  105,
+                  111,
+                  110,
+                  115
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "box_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "submission",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  117,
+                  98,
+                  109,
+                  105,
+                  115,
+                  115,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "box_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "box_id",
+          "type": "pubkey"
+        },
+        {
+          "name": "encrypted_blob",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
+      "name": "undelegate_state",
+      "docs": [
+        "Undelegates BOTH the BoxPermissions and Submission accounts back to the L1 base layer"
+      ],
+      "discriminator": [
+        255,
+        189,
+        95,
+        106,
+        242,
+        8,
+        94,
+        171
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "box_permissions",
+          "writable": true
+        },
+        {
+          "name": "submission",
+          "writable": true
+        },
+        {
+          "name": "magic_context",
+          "writable": true
+        },
+        {
+          "name": "magic_program"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "BoxPermissions",
+      "discriminator": [
+        128,
+        166,
+        89,
+        214,
+        168,
+        54,
+        104,
+        103
+      ]
+    },
+    {
+      "name": "Submission",
+      "discriminator": [
+        58,
+        194,
+        159,
+        158,
+        75,
+        102,
+        178,
+        197
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "PermissionsCreated",
+      "discriminator": [
+        10,
+        203,
+        102,
+        54,
+        25,
+        43,
+        198,
+        147
+      ]
+    },
+    {
+      "name": "SubmissionApproved",
+      "discriminator": [
+        59,
+        102,
+        182,
+        29,
+        243,
+        202,
+        148,
+        164
+      ]
+    },
+    {
+      "name": "TipSubmitted",
+      "discriminator": [
+        170,
+        224,
+        16,
+        239,
+        244,
+        252,
+        196,
+        12
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "BlobTooLarge",
+      "msg": "Encrypted blob exceeds maximum allowed size (4096 bytes)"
+    },
+    {
+      "code": 6001,
+      "name": "BoxAlreadySettled",
+      "msg": "This box has already been settled"
+    },
+    {
+      "code": 6002,
+      "name": "TooManySubmissions",
+      "msg": "Submission limit reached for this box"
+    },
+    {
+      "code": 6003,
+      "name": "Unauthorized",
+      "msg": "Only the box owner can perform this action"
+    },
+    {
+      "code": 6004,
+      "name": "AlreadyApproved",
+      "msg": "This submission has already been approved"
+    }
+  ],
+  "types": [
+    {
+      "name": "BoxPermissions",
+      "docs": [
+        "Permission group for one bounty box.",
+        "Lives entirely inside the TEE — private from Solana L1."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "box_id",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "verifier",
+            "type": "pubkey"
+          },
+          {
+            "name": "submission_count",
+            "type": "u64"
+          },
+          {
+            "name": "is_settled",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PermissionsCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "box_id",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "verifier",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Submission",
+      "docs": [
+        "A single private tip submission.",
+        "`encrypted_blob` is client-side encrypted — only the box owner can decrypt."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "box_id",
+            "type": "pubkey"
+          },
+          {
+            "name": "submission_id",
+            "type": "u64"
+          },
+          {
+            "name": "submitter",
+            "type": "pubkey"
+          },
+          {
+            "name": "encrypted_blob",
+            "type": "bytes"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "is_approved",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SubmissionApproved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "box_id",
+            "type": "pubkey"
+          },
+          {
+            "name": "submission_id",
+            "type": "u64"
+          },
+          {
+            "name": "submitter",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TipSubmitted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "box_id",
+            "type": "pubkey"
+          },
+          {
+            "name": "submission_id",
+            "type": "u64"
+          },
+          {
+            "name": "submitter",
+            "type": "pubkey"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ]
+}

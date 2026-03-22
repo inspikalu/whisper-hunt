@@ -1,0 +1,627 @@
+{
+  "address": "RSKiBZg1sMV2qUF3tj4gsYYWVm74sKcTAYvLK7F8Msw",
+  "metadata": {
+    "name": "whisper_hunt_l1",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "close_box",
+      "docs": [
+        "Original funder reclaims SOL if the deadline passes without any approval."
+      ],
+      "discriminator": [
+        255,
+        201,
+        78,
+        228,
+        223,
+        71,
+        133,
+        90
+      ],
+      "accounts": [
+        {
+          "name": "funder",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "bounty_box",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bounty_box"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_box",
+      "docs": [
+        "Creates a new bounty box.",
+        "The funder sets a topic, deadline, and a verifier pubkey.",
+        "An initial SOL deposit is locked into the vault PDA."
+      ],
+      "discriminator": [
+        108,
+        200,
+        91,
+        3,
+        44,
+        99,
+        31,
+        27
+      ],
+      "accounts": [
+        {
+          "name": "funder",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "bounty_box",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  98,
+                  111,
+                  117,
+                  110,
+                  116,
+                  121,
+                  95,
+                  98,
+                  111,
+                  104
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "funder"
+              },
+              {
+                "kind": "arg",
+                "path": "nonce"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bounty_box"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "nonce",
+          "type": {
+            "array": [
+              "u8",
+              4
+            ]
+          }
+        },
+        {
+          "name": "topic",
+          "type": "string"
+        },
+        {
+          "name": "deadline",
+          "type": "i64"
+        },
+        {
+          "name": "verifier_pubkey",
+          "type": "pubkey"
+        },
+        {
+          "name": "initial_amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "force_close_box",
+      "docs": [
+        "Emergency/Reset: Close box immediately even if deadline has not passed."
+      ],
+      "discriminator": [
+        135,
+        75,
+        114,
+        77,
+        109,
+        130,
+        25,
+        198
+      ],
+      "accounts": [
+        {
+          "name": "funder",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "bounty_box",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bounty_box"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "fund_box",
+      "docs": [
+        "Anyone can add more SOL to an existing box — making it a crowd-funded pool."
+      ],
+      "discriminator": [
+        243,
+        29,
+        4,
+        139,
+        40,
+        103,
+        42,
+        81
+      ],
+      "accounts": [
+        {
+          "name": "funder",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "bounty_box",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bounty_box"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "release_bounty",
+      "docs": [
+        "Releases the bounty to the winner.",
+        "CRITICAL: This instruction must only be called via CPI from the PER program.",
+        "The constraint enforces the per_program is the correct program — nobody else can trigger a payout."
+      ],
+      "discriminator": [
+        208,
+        104,
+        178,
+        53,
+        137,
+        16,
+        74,
+        64
+      ],
+      "accounts": [
+        {
+          "name": "per_authority",
+          "docs": [
+            "This is the security nucleus: nobody except a CPI from",
+            "the whisper-hunt-per program (via its PDA) can release funds."
+          ],
+          "signer": true
+        },
+        {
+          "name": "bounty_box",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "bounty_box"
+              }
+            ]
+          }
+        },
+        {
+          "name": "submitter_payout_account",
+          "docs": [
+            "by the `submitter` argument passed from the PER program's CPI"
+          ],
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "submitter",
+          "type": "pubkey"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "BountyBox",
+      "discriminator": [
+        100,
+        20,
+        182,
+        201,
+        161,
+        112,
+        226,
+        74
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "BountyReleased",
+      "discriminator": [
+        56,
+        153,
+        231,
+        87,
+        185,
+        70,
+        138,
+        108
+      ]
+    },
+    {
+      "name": "BoxClosed",
+      "discriminator": [
+        4,
+        35,
+        24,
+        59,
+        23,
+        131,
+        136,
+        5
+      ]
+    },
+    {
+      "name": "BoxCreated",
+      "discriminator": [
+        109,
+        164,
+        8,
+        99,
+        246,
+        103,
+        141,
+        0
+      ]
+    },
+    {
+      "name": "BoxFunded",
+      "discriminator": [
+        241,
+        231,
+        144,
+        240,
+        146,
+        197,
+        19,
+        78
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "TopicTooLong",
+      "msg": "Topic must be between 1 and 200 characters"
+    },
+    {
+      "code": 6001,
+      "name": "ZeroFunding",
+      "msg": "Funding amount must be greater than zero"
+    },
+    {
+      "code": 6002,
+      "name": "DeadlineInPast",
+      "msg": "Deadline must be in the future"
+    },
+    {
+      "code": 6003,
+      "name": "DeadlinePassed",
+      "msg": "Deadline has already passed"
+    },
+    {
+      "code": 6004,
+      "name": "DeadlineNotPassed",
+      "msg": "Deadline has not yet passed"
+    },
+    {
+      "code": 6005,
+      "name": "AlreadySettled",
+      "msg": "This box has already been settled"
+    },
+    {
+      "code": 6006,
+      "name": "EmptyVault",
+      "msg": "Vault is empty"
+    },
+    {
+      "code": 6007,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6008,
+      "name": "Unauthorized",
+      "msg": "Only the designated authority can perform this action"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidSubmitter",
+      "msg": "Invalid submitter pubkey"
+    }
+  ],
+  "types": [
+    {
+      "name": "BountyBox",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "box_id",
+            "type": "pubkey"
+          },
+          {
+            "name": "funder",
+            "type": "pubkey"
+          },
+          {
+            "name": "topic",
+            "type": "string"
+          },
+          {
+            "name": "deadline",
+            "type": "i64"
+          },
+          {
+            "name": "verifier_pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "total_funded",
+            "type": "u64"
+          },
+          {
+            "name": "is_settled",
+            "type": "bool"
+          },
+          {
+            "name": "winner",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BountyReleased",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "box_id",
+            "type": "pubkey"
+          },
+          {
+            "name": "submitter",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BoxClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "box_id",
+            "type": "pubkey"
+          },
+          {
+            "name": "funder",
+            "type": "pubkey"
+          },
+          {
+            "name": "refund_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BoxCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "box_id",
+            "type": "pubkey"
+          },
+          {
+            "name": "funder",
+            "type": "pubkey"
+          },
+          {
+            "name": "topic",
+            "type": "string"
+          },
+          {
+            "name": "deadline",
+            "type": "i64"
+          },
+          {
+            "name": "verifier_pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "initial_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BoxFunded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "box_id",
+            "type": "pubkey"
+          },
+          {
+            "name": "funder",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "new_total",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ]
+}

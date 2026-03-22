@@ -22,7 +22,7 @@ deploy/
 .env.production.local
 *.pem
 *.key
-*.json
+# *.json (removed to allow package.json and IDLs)
 
 .DS_Store
 Thumbs.db
