@@ -2,7 +2,7 @@
 
 I built WhisperHunt to bridge the gap between high-stakes whistleblowing and on-chain accountability. In a world where transparency often compromises the source, I wanted to create a platform where intelligence could be shared with total privacy while still ensuring that hunters get paid for their risks.
 
-## The Story So Far...
+## The Story
 
 When I started building the core protocol, I realized that requiring a whistleblower to own SOL just to submit a tip was a major privacy leak. It created a link between their personal wallet and the disclosure. So, I pivoted and implemented the **Zero-Gas Gateway**. Now, you can submit an encrypted tip using an ephemeral session key—no SOL required, no history left behind.
 
