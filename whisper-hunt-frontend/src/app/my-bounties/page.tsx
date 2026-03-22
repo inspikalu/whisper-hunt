@@ -47,7 +47,7 @@ export default function MyBountiesPage() {
         const [permPda] = getBoxPermissionsPDA(box.publicKey);
         let subCount = "0";
         try {
-          const permState = await perProgram.account.boxPermissions.fetch(permPda) as any;
+          const permState = await (perProgram.account as any).boxPermissions.fetch(permPda) as any;
           subCount = permState.submissionCount.toString();
         } catch (e) {
           // Permissions might not be initialized or delegated

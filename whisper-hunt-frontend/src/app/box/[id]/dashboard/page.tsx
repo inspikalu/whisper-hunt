@@ -43,7 +43,7 @@ export default function OwnerDashboardPage({ params: paramsPromise }: { params: 
   const fetchBoxData = async () => {
     try {
       setIsFetchingBox(true);
-      const data = await l1Program.account.bountyBox.fetch(new PublicKey(params.id));
+      const data = await (l1Program.account as any).bountyBox.fetch(new PublicKey(params.id));
       setBoxData(data);
     } catch (error) {
       console.error("Failed to fetch box data:", error);
