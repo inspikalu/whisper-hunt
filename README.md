@@ -6,7 +6,7 @@ I built WhisperHunt to bridge the gap between high-stakes whistleblowing and on-
 
 ## The Story
 
-When I started building the core protocol, I realized that requiring a whistleblower to own SOL just to submit a tip was a major privacy leak. It created a link between their personal wallet and the disclosure. So, I pivoted and implemented the **Zero-Gas Gateway**. Now, you can submit an encrypted tip using an ephemeral session key—no SOL required, no history left behind.
+When I started building the core protocol, I realized that requiring a whistleblower to use their primary wallet to submit a tip was a major privacy leak. It created a link between their personal identity and the disclosure. So, I pivoted and implemented **Anonymous Session Submissions**. Now, you can submit an encrypted tip using an ephemeral session key—maintaining total isolation from your main wallet history while using a minimal amount of SOL for the on-chain synchronization.
 
 While I was refining the **Private Ephemeral Rollup (PER)**, I focused on the "TEE Attestation" layer. I didn't just want the data to be encrypted; I wanted it to be mathematically impossible for anyone but the authorized mission owner to read it. I integrated a Trusted Execution Environment that only lifts the privacy veil once the owner's identity is verified on-chain.
 
@@ -20,7 +20,7 @@ Finally, I tackled the settlement logic. I made sure that the payout from our **
 
 ## Core Features
 
-- **Zero-Gas Gateway**: Submissions use ephemeral session keys, allowing whistleblowers without SOL to disclose anonymously.
+- **Anonymous Disclosures**: Submissions use ephemeral session keys, ensuring whistleblowers' primary wallets are never linked to their intelligence.
 - **TEE Attestation**: Trusted Execution Environment ensures that data is only decrypted for the authorized mission owner.
 - **Atomic Settlement**: Cross-program invocation ensures that payouts are trustless and triggered only upon manual approval.
 

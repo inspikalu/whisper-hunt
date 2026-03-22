@@ -13,12 +13,12 @@ export default function SubmitTipPage({ params: paramsPromise }: { params: Promi
   const params = React.use(paramsPromise);
   const l1Program = useWhisperHuntL1();
   const perProgram = useWhisperHuntPER();
-  
+
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [evidence, setEvidence] = useState("");
   const [contact, setContact] = useState("");
-  
+
   const [boxData, setBoxData] = useState<any>(null);
   const [isFetchingBox, setIsFetchingBox] = useState(true);
 
@@ -83,7 +83,7 @@ export default function SubmitTipPage({ params: paramsPromise }: { params: Promi
           <span className="material-symbols-outlined text-primary-container text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>lock_person</span>
           <div>
             <p className="font-headline text-sm text-primary-container font-bold uppercase tracking-[0.2em]">Zero-Knowledge Gateway Active</p>
-            <p className="text-on-surface-variant text-sm mt-1 font-light leading-relaxed">Your identity is protected by an ephemeral bridge. No SOL required. No traces logged. Your data is encrypted locally before transmission to the Private Ephemeral Rollup.</p>
+            <p className="text-on-surface-variant text-sm mt-1 font-light leading-relaxed">Your identity is protected by an ephemeral bridge. Your data is encrypted locally before transmission to the Private Ephemeral Rollup.</p>
           </div>
         </div>
 
@@ -91,11 +91,11 @@ export default function SubmitTipPage({ params: paramsPromise }: { params: Promi
           {/* Main Submission Unit */}
           <section className="lg:col-span-8 space-y-12">
             <div className="space-y-6">
-               <div className="flex justify-between items-end mb-4">
+              <div className="flex justify-between items-end mb-4">
                 <h3 className="font-headline text-3xl font-bold text-primary">Intelligence Disclosure</h3>
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-tertiary-container animate-pulse"></span>
-                   <span className="monospaced text-[10px] text-tertiary uppercase tracking-widest">Secure Tunnel Established</span>
+                  <span className="monospaced text-[10px] text-tertiary uppercase tracking-widest">Secure Tunnel Established</span>
                 </div>
               </div>
 
@@ -112,8 +112,8 @@ export default function SubmitTipPage({ params: paramsPromise }: { params: Promi
                   <div className="group">
                     <label className="block font-label text-[10px] tracking-[0.2em] uppercase text-on-surface-variant/40 mb-4 group-focus-within:text-primary transition-colors">01. Confidential Data Entry</label>
                     <div className="relative group">
-                      <textarea 
-                        className="w-full min-h-[350px] bg-surface-container-lowest border-none ring-1 ring-outline-variant/10 focus:ring-primary-container text-on-surface p-8 font-mono text-sm leading-relaxed rounded-xl transition-all placeholder:text-on-surface-variant/10 shadow-inner" 
+                      <textarea
+                        className="w-full min-h-[350px] bg-surface-container-lowest border-none ring-1 ring-outline-variant/10 focus:ring-primary-container text-on-surface p-8 font-mono text-sm leading-relaxed rounded-xl transition-all placeholder:text-on-surface-variant/10 shadow-inner"
                         placeholder="Type or paste your evidence disclosure here... Markdown supported for precise formatting."
                         value={evidence}
                         onChange={(e) => setEvidence(e.target.value)}
@@ -121,8 +121,8 @@ export default function SubmitTipPage({ params: paramsPromise }: { params: Promi
                     </div>
                   </div>
 
-                   <button 
-                    onClick={handleSubmit} 
+                  <button
+                    onClick={handleSubmit}
                     disabled={loading || !evidence || isFetchingBox}
                     className="w-full group relative flex items-center justify-center gap-4 py-8 bg-primary-container rounded-xl overflow-hidden transition-all active:scale-[0.98] hover:shadow-[0_0_40px_rgba(0,245,255,0.2)] disabled:opacity-50"
                   >
@@ -138,21 +138,21 @@ export default function SubmitTipPage({ params: paramsPromise }: { params: Promi
           {/* Context Panel */}
           <aside className="lg:col-span-4 space-y-8">
             <div className="bg-surface-container rounded-xl p-10 space-y-8 border border-outline-variant/5 relative overflow-hidden group">
-               <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors"></div>
+              <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors"></div>
               {isFetchingBox ? (
                 <div className="space-y-4 animate-pulse">
                   <div className="h-4 w-24 bg-surface-container-highest rounded"></div>
                   <div className="h-10 w-full bg-surface-container-highest rounded"></div>
                   <div className="pt-6 border-t border-outline-variant/10 flex justify-between">
-                     <div className="h-4 w-12 bg-surface-container-highest rounded"></div>
-                     <div className="h-6 w-20 bg-surface-container-highest rounded"></div>
+                    <div className="h-4 w-12 bg-surface-container-highest rounded"></div>
+                    <div className="h-6 w-20 bg-surface-container-highest rounded"></div>
                   </div>
                 </div>
               ) : boxData ? (
                 <>
                   <div className="space-y-2">
-                     <span className="font-headline text-[10px] text-primary-container/60 uppercase tracking-widest">Target Bounty Instance</span>
-                     <h2 className="font-headline text-3xl font-bold text-on-surface italic leading-tight uppercase">{boxData.topic}</h2>
+                    <span className="font-headline text-[10px] text-primary-container/60 uppercase tracking-widest">Target Bounty Instance</span>
+                    <h2 className="font-headline text-3xl font-bold text-on-surface italic leading-tight uppercase">{boxData.topic}</h2>
                   </div>
 
                   <div className="space-y-6 pt-6 border-t border-outline-variant/10">
@@ -162,19 +162,19 @@ export default function SubmitTipPage({ params: paramsPromise }: { params: Promi
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs text-on-surface-variant uppercase tracking-widest font-bold">Bounty ID</span>
-                      <span className="text-[10px] font-mono text-outline-variant bg-surface-container-highest/20 px-2 py-1 rounded">BOX_{params.id.substring(0,6).toUpperCase()}</span>
+                      <span className="text-[10px] font-mono text-outline-variant bg-surface-container-highest/20 px-2 py-1 rounded">BOX_{params.id.substring(0, 6).toUpperCase()}</span>
                     </div>
                   </div>
                 </>
               ) : (
                 <div className="text-center py-8">
-                   <p className="text-xs text-error uppercase tracking-widest font-bold">Error loading mission data</p>
+                  <p className="text-xs text-error uppercase tracking-widest font-bold">Error loading mission data</p>
                 </div>
               )}
             </div>
 
             <div className="bg-surface-container-low p-8 rounded-xl border border-outline-variant/5">
-               <h3 className="font-headline text-xs font-bold text-on-surface uppercase tracking-widest mb-6 flex items-center gap-2">
+              <h3 className="font-headline text-xs font-bold text-on-surface uppercase tracking-widest mb-6 flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary-container text-lg">terminal</span>
                 Network Proof
               </h3>
@@ -194,10 +194,10 @@ export default function SubmitTipPage({ params: paramsPromise }: { params: Promi
       </main>
 
       {toast && (
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          onClose={hideToast} 
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={hideToast}
         />
       )}
     </>

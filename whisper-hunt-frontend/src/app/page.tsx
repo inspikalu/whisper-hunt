@@ -73,7 +73,7 @@ export default function Home() {
               </div>
             </div>
             <p className="text-on-surface-variant font-light leading-relaxed mb-8">
-              The WhisperHunt protocol ensures zero-reveal intelligence gathering. All submissions are processed within Trusted Execution Environments (TEEs) using Ephemeral Rollups for gasless, high-speed execution.
+              The WhisperHunt protocol ensures zero-reveal intelligence gathering. All submissions are processed within Trusted Execution Environments (TEEs) using Ephemeral Rollups for high-speed, secure execution.
             </p>
             <div className="flex gap-4">
               <div className="monospaced text-[10px] bg-surface-container px-3 py-1 rounded">V2.1.0-STABLE</div>
